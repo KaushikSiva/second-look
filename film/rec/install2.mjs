@@ -1,0 +1,31 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs';
+import path from 'node:path';
+const EXT = path.resolve('extension');
+const OUT = path.resolve('film/rec/install2');
+fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
+const PROFILE = '/private/tmp/claude-501/sl-install2';
+fs.rmSync(PROFILE, { recursive: true, force: true });
+const ctx = await chromium.launchPersistentContext(PROFILE, { channel: 'chromium', headless: true, viewport: { width: 1280, height: 800 },
+  args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] });
+const page = ctx.pages()[0] || await ctx.newPage();
+await page.emulateMedia({ colorScheme: 'dark' });
+await page.goto('chrome://extensions');
+await page.waitForTimeout(1200);
+if (!(await page.locator('#devMode').isChecked().catch(() => true))) await page.locator('#devMode').click();
+await page.waitForTimeout(800);
+const t0 = Date.now(); let n = 0;
+const cdp = await ctx.newCDPSession(page);
+cdp.on('Page.screencastFrame', async ({ data, sessionId }) => {
+  fs.writeFileSync(`${OUT}/${String(n++).padStart(6, '0')}_${((Date.now() - t0) / 1000).toFixed(3)}.jpg`, Buffer.from(data, 'base64'));
+  cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
+});
+await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 90, maxWidth: 1280, maxHeight: 800 });
+await page.mouse.move(640, 600);
+await page.waitForTimeout(1500);
+const card = page.locator('extensions-item').first();
+const b = await card.boundingBox().catch(() => null);
+console.log('card', b);
+if (b) await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 30 });
+await page.waitForTimeout(3500);
+await cdp.send('Page.stopScreencast'); await ctx.close();

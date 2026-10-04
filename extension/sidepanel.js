@@ -787,7 +787,8 @@ function onTool(msg) {
   wrap.hidden = false;
   let chip = S.tools.get(id);
   if (!chip) {
-    chip = h('div', { class: 'chip' }, h('span', { class: 'ind' }), h('span', { class: 'chip-label' }));
+    chip = h('div', { class: 'chip' }, h('span', { class: 'ind' }), h('span', { class: 'chip-label' }), h('span', { class: 't' }));
+    chip._t0 = performance.now();
     wrap.append(chip);
     S.tools.set(id, chip);
     // Keep the row tidy: fade older finished chips and cap the count.
@@ -801,12 +802,18 @@ function onTool(msg) {
   }
   const state = msg.state || 'running';
   chip.dataset.state = state;
+  if (msg.id !== 'kernel') {
+    const busy = [...S.tools].some(([k, c]) => k !== 'kernel' && c.dataset.state === 'running');
+    if (busy) window.SLRunner?.show();
+    else window.SLRunner?.hide();
+  }
   const label = $('.chip-label', chip);
   label.textContent = msg.label || prettyToolName(msg.name);
   label.classList.toggle('shimmer', state === 'running');
   const ind = $('.ind', chip);
   ind.textContent = '';
   if (state === 'done') ind.append(icon('i-check', 12));
+  $('.t', chip).textContent = state === 'running' ? '' : `${((performance.now() - chip._t0) / 1000).toFixed(1)}s`;
   if (state === 'error') ind.append(icon('i-x', 11));
 }
 
@@ -841,6 +848,7 @@ function upsertCard(card) {
     $('#cards').append(el);
   }
   S.cards.set(id, el);
+  if (card.kind === 'verdict') window.SLRunner?.hide();
   $('#insightsSection').hidden = false;
   updateCompact();
   updateStageText();
@@ -895,32 +903,52 @@ const VERDICT = {
   BUY_ALTERNATIVE: { label: 'Buy alternative', icon: 'i-swap', color: 'var(--blue)' }
 };
 
+const METER_ORDER = ['SKIP', 'WAIT', 'BUY_ALTERNATIVE', 'BUY_NOW'];
+const METER_LBL = { SKIP: 'Skip', WAIT: 'Wait', BUY_ALTERNATIVE: 'Alt.', BUY_NOW: 'Buy' };
+function verdictMeter(key) {
+  // A 180° appraisal dial: four zones, the brass needle settles on the verdict's zone.
+  const cx = 150, cy = 150, r = 118;
+  const pt = (deg, rad) => [cx + rad * Math.cos((deg - 180) * Math.PI / 180), cy + rad * Math.sin((deg - 180) * Math.PI / 180)];
+  const arc = (a0, a1) => { const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r); return `M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}`; };
+  const colors = { SKIP: 'var(--red)', WAIT: 'var(--amber)', BUY_ALTERNATIVE: 'var(--blue)', BUY_NOW: 'var(--green)' };
+  let zones = '', labels = '', ticks = '';
+  METER_ORDER.forEach((k, i) => {
+    const a0 = i * 45 + 2, a1 = (i + 1) * 45 - 2;
+    const on = k === key;
+    zones += `<path class="arc" d="${arc(a0, a1)}" style="stroke:${colors[k]};opacity:${on ? 1 : 0.22}"/>`;
+    const [lx, ly] = pt(i * 45 + 22.5, r + 20);
+    labels += `<text class="tlbl${on ? ' on' : ''}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${METER_LBL[k]}</text>`;
+  });
+  for (let d = 0; d <= 180; d += 7.5) {
+    const long = d % 45 === 0, [x0, y0] = pt(d, r - 10), [x1, y1] = pt(d, r - (long ? 22 : 15));
+    ticks += `<line class="tick" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" style="opacity:${long ? .9 : .45}"/>`;
+  }
+  const idx = Math.max(0, METER_ORDER.indexOf(key));
+  const target = idx * 45 + 22.5 - 90;
+  const wrap = h('div', { class: 'meter' });
+  wrap.innerHTML = `<svg viewBox="0 0 300 165" role="img" aria-label="Verdict meter">${zones}${ticks}${labels}
+    <line class="needle" x1="150" y1="150" x2="150" y2="${150 - r + 26}"/>
+    <circle class="hub" cx="150" cy="150" r="7"/><circle class="hub2" cx="150" cy="150" r="2.5"/></svg>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const n = wrap.querySelector('.needle'); if (n) n.style.transform = `rotate(${target}deg)`;
+  }));
+  return wrap;
+}
+
 function renderVerdict(c) {
   const key = String(c.verdict || '').toUpperCase();
   const v = VERDICT[key] || { label: key || 'Verdict', icon: 'i-spark', color: 'var(--accent)' };
   const conf = pct(c.confidence);
-  const el = h('article', { class: 'card verdict', dataset: { v: key } },
-    h('div', { class: 'verdict-top' },
-      h('span', { class: 'verdict-badge' }, icon(v.icon, 14), v.label),
-      h('span', { class: 'verdict-eyebrow' }, 'Second Look verdict')),
+  return h('article', { class: 'card verdict', dataset: { v: key } },
+    verdictMeter(key),
+    h('div', { class: 'verdict-word' }, v.label),
     c.headline ? h('div', { class: 'verdict-headline' }, c.headline) : null,
     conf != null ? h('div', { class: 'conf' },
       h('div', { class: 'conf-row' }, h('span', null, 'Confidence'), h('b', { class: 'num' }, `${Math.round(conf)}%`)),
-      h('div', { class: 'bar' }, h('i', { 'data-w': conf + '%' }))) : null,
+      h('div', { class: 'bar', style: { marginTop: '7px' } }, h('i', { 'data-w': conf + '%' }))) : null,
     Array.isArray(c.reasons) && c.reasons.length
-      ? h('ol', { class: 'reasons' }, c.reasons.map((r, i) => h('li', { style: { animationDelay: `${0.15 + i * 0.08}s` } }, r)))
+      ? h('ol', { class: 'reasons' }, c.reasons.map((r, i) => h('li', { style: { animationDelay: `${0.4 + i * 0.1}s` } }, r)))
       : null);
-
-  const probs = c.probabilities && typeof c.probabilities === 'object' ? Object.entries(c.probabilities) : [];
-  const vals = probs.map(([k, p]) => [k, pct(p)]).filter(([, p]) => p != null && p > 0);
-  if (vals.length > 1) {
-    const colorOf = (k) => (VERDICT[String(k).toUpperCase()] || {}).color || 'var(--text-3)';
-    el.append(h('div', { class: 'probs' },
-      h('div', { class: 'probs-bar' }, vals.map(([k, p]) => h('i', { 'data-grow': String(p), style: { flexGrow: '0', flexBasis: '0', background: colorOf(k) } }))),
-      h('div', { class: 'probs-legend' }, vals.map(([k, p]) =>
-        h('span', { style: { '--c': colorOf(k) } }, `${(VERDICT[String(k).toUpperCase()] || {}).label || k} ${Math.round(p)}%`)))));
-  }
-  return el;
 }
 
 function stars(rating) {

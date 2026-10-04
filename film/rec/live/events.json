@@ -1,0 +1,58 @@
+[
+ {
+  "name": "panel_ready",
+  "t": 11.022
+ },
+ {
+  "name": "mic_tap",
+  "t": 11.206
+ },
+ {
+  "name": "card_price",
+  "t": 19.514
+ },
+ {
+  "name": "card_reviews",
+  "t": 25.117
+ },
+ {
+  "name": "card_stores",
+  "t": 27.129
+ },
+ {
+  "name": "card_alternatives",
+  "t": 43.163
+ },
+ {
+  "name": "verdict",
+  "t": 43.588
+ },
+ {
+  "name": "card_cost",
+  "t": 44.694
+ },
+ {
+  "name": "card_verdict",
+  "t": 47.061
+ },
+ {
+  "name": "type_watch",
+  "t": 65.649
+ },
+ {
+  "name": "ask_watch",
+  "t": 68.121
+ },
+ {
+  "name": "watch",
+  "t": 84.002
+ },
+ {
+  "name": "card_watch-asin:B07VVK39F7",
+  "t": 84.147
+ },
+ {
+  "name": "end",
+  "t": 96.005
+ }
+]

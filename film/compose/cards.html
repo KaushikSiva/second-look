@@ -1,0 +1,90 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:N;src:url(../../extension/fonts/Newsreader-normal-400-600.woff2);font-weight:400 600}
+@font-face{font-family:N;src:url(../../extension/fonts/Newsreader-italic-400-500.woff2);font-style:italic;font-weight:400 500}
+@font-face{font-family:H;src:url(../../extension/fonts/HankenGrotesk-normal-400-700.woff2);font-weight:400 700}
+@font-face{font-family:M;src:url(../../extension/fonts/IBMPlexMono-normal-500.woff2);font-weight:500}
+*{margin:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0E0F10;color:#ECE9E2;font-family:H}
+.s{display:none;position:absolute;inset:0}
+.show{display:block}
+.eyebrow{font:500 15px M;letter-spacing:.22em;text-transform:uppercase;color:#8D8A84}
+/* problem */
+#problem .wrap{position:absolute;left:200px;top:280px}
+#problem .tag{display:flex;align-items:baseline;gap:34px;margin-top:40px}
+#problem .p{font:500 150px N;letter-spacing:-4px}
+#problem .was{font:400 64px N;color:#8D8A84;text-decoration:line-through;text-decoration-color:#CF6A5C;text-decoration-thickness:3px}
+#problem .off{font:500 28px M;color:#CF6A5C;border:1.5px solid #CF6A5C;padding:8px 14px;border-radius:4px;letter-spacing:.08em}
+#problem .stars{margin-top:40px;font:400 44px N;color:#8D8A84}
+#problem .stars b{color:#ECE9E2;font-weight:500}
+#problem .stars i{color:#CF6A5C;font-style:italic}
+/* title */
+#title .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px}
+#title h1{font:400 150px N;letter-spacing:-4px}
+#title h1 i{color:#8D8A84}
+#title p{font:italic 400 38px N;color:#8D8A84}
+/* window chrome */
+.win{position:absolute;border-radius:12px;overflow:hidden;background:#202124;box-shadow:0 50px 120px -30px #000,0 0 0 1px #2b2c2f}
+.bar{height:44px;background:#202124;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #2b2c2f}
+.dots i{display:inline-block;width:12px;height:12px;border-radius:50%;background:#3c3d41;margin-right:7px}
+.url{flex:1;height:28px;border-radius:14px;background:#2b2c2f;display:flex;align-items:center;padding:0 16px;font:14px H;color:#bdc1c6}
+.ext{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;background:#35363a}
+.hole{background:#000}
+.cap{position:absolute;left:100px;top:52px;display:flex;align-items:center;gap:18px}
+.cap .k{font:500 14px M;color:#0E0F10;background:#ECE9E2;padding:5px 10px;border-radius:3px;letter-spacing:.1em}
+.cap .t{font:400 30px N}
+.cap .t i{color:#8D8A84}
+/* terminal */
+.term{position:absolute;left:360px;top:210px;width:1200px;height:660px;border-radius:12px;background:#151617;box-shadow:0 50px 120px -30px #000,0 0 0 1px #2b2c2f;font:500 19px/1.75 M;padding:70px 46px;color:#B9B6AF}
+.term .ps{color:#74B49B}
+.term .ok{color:#74B49B}
+.term b{color:#ECE9E2;font-weight:500}
+</style></head><body>
+
+<div class="s" id="problem"><div class="wrap">
+ <div class="eyebrow">Product page, every day</div>
+ <div class="tag"><span class="p">$129</span><span class="was">$199</span><span class="off">35% OFF</span></div>
+ <div class="stars"><b>4.7★</b> from 52,000 reviews <i>(many of them free products)</i></div>
+</div></div>
+
+<div class="s" id="title"><div class="c">
+ <svg width="110" height="110" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="#ECE9E2" stroke-width=".9"/><circle cx="14" cy="14" r="5.5" fill="none" stroke="#ECE9E2" stroke-width=".9"/><path d="M14 14 L21 6.5" stroke="#C8A25E" stroke-width="1" stroke-linecap="round"/><circle cx="14" cy="14" r="1.3" fill="#C8A25E"/></svg>
+ <h1>Second <i>Look</i></h1>
+ <p>An honest second opinion, before you buy.</p>
+ <div class="eyebrow" style="margin-top:20px">Chrome extension · voice agent</div>
+</div></div>
+
+<div class="s" id="term">
+ <div class="cap"><span class="k">STEP 1</span><span class="t">Start the backend</span></div>
+ <div class="term">
+  <div><span class="ps">~/second-look/backend $</span> <b>uvicorn app.main:app --port 8000</b></div>
+  <div>INFO: &nbsp;Started server process</div>
+  <div>INFO: &nbsp;second-look: db ready</div>
+  <div>INFO: &nbsp;Application startup complete.</div>
+  <div>INFO: &nbsp;Uvicorn running on <b>http://127.0.0.1:8000</b></div>
+  <div style="margin-top:22px"><span class="ps">$</span> <b>curl localhost:8000/health</b></div>
+  <div>{"ok": true, "integrations": {"gemini": <span class="ok">true</span>, "jev": <span class="ok">true</span>, "exa": <span class="ok">true</span>,</div>
+  <div>&nbsp;"kernel": <span class="ok">true</span>, "agentmail": <span class="ok">true</span>, "neon": <span class="ok">true</span>}}</div>
+ </div>
+</div>
+
+<!-- install window: content hole 1280x800 at (320,180) -->
+<div class="s" id="inst">
+ <div class="cap"><span class="k" id="ik">STEP 2</span><span class="t" id="it">Open <i>chrome://extensions</i>, turn on Developer mode</span></div>
+ <div class="win" style="left:320px;top:136px;width:1280px;height:844px"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">chrome://extensions</span></div><div class="hole" style="height:800px"></div></div>
+</div>
+
+<!-- live window: content 1720x800 at (100,180): shop 1280 + panel 440 -->
+<div class="s" id="live">
+ <div class="cap" style="top:60px"><span class="k" id="lk">LIVE</span><span class="t" id="lt">A real session on Amazon, spoken out loud</span></div>
+ <div class="win" style="left:100px;top:136px;width:1720px;height:844px"><div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">amazon.com/dp/B07VVK39F7</span>
+  <span class="ext"><svg width="18" height="18" viewBox="0 0 28 28"><circle cx="14" cy="14" r="12" fill="none" stroke="#ECE9E2" stroke-width="1.6"/><circle cx="14" cy="14" r="5.5" fill="none" stroke="#ECE9E2" stroke-width="1.6"/><path d="M14 14 L21 6.5" stroke="#C8A25E" stroke-width="2" stroke-linecap="round"/></svg></span></div>
+  <div class="hole" style="height:800px"></div></div>
+</div>
+
+<script>
+const q=new URLSearchParams(location.search);
+document.getElementById(q.get('s')).classList.add('show');
+for(const k of ['ik','it','lk','lt']) if(q.get(k)) document.getElementById(k).innerHTML=q.get(k);
+</script>
+</body></html>

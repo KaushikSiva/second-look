@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Second Look</title>
   <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="premium.css">
 </head>
 <body>
   <!-- Shared SVG symbols -->
@@ -39,13 +40,9 @@
     <header class="topbar">
       <div class="brand">
         <span class="logo" aria-hidden="true">
-          <svg viewBox="0 0 28 28" width="26" height="26">
-            <rect width="28" height="28" rx="8" fill="url(#brandGrad)"/>
-            <circle cx="14" cy="14" r="7.4" fill="none" stroke="#fff" stroke-width="2.3"/>
-            <circle cx="15.5" cy="12.5" r="2.7" fill="#fff"/>
-          </svg>
+          <svg viewBox="0 0 28 28" width="24" height="24"><circle cx="14" cy="14" r="12" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="14" r="5.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M14 14 L21 6.5" stroke="#C8A25E" stroke-width="1.6" stroke-linecap="round"/><circle cx="14" cy="14" r="1.6" fill="#C8A25E"/></svg>
         </span>
-        <span class="brand-name">Second Look</span>
+        <span class="brand-name">Second <i>Look</i></span>
       </div>
       <div class="top-right">
         <div id="savings" class="savings-pill" hidden title="Total saved with Second Look">
@@ -128,7 +125,7 @@
 
       <section class="section" id="insightsSection" hidden>
         <div class="section-head">
-          <span class="section-label">Insights</span>
+          <span class="section-label">Findings</span>
           <button id="clearCards" class="link-btn">Clear</button>
         </div>
         <div id="cards" class="cards"></div>
@@ -160,6 +157,7 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
 
+  <script src="runner.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/title.png" alt="Second Look" width="720">
+  <img src="docs/product.jpg" alt="Second Look: the verdict meter next to an Amazon product page" width="900">
 </p>
 
 <h3 align="center">Before you buy, take a second look.</h3>

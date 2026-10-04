@@ -1,0 +1,33 @@
+{
+ "events": [
+  {
+   "name": "extensions_page",
+   "t": 2.412
+  },
+  {
+   "name": "cursor_dev",
+   "t": 5.379
+  },
+  {
+   "name": "dev_on",
+   "t": 5.939
+  },
+  {
+   "name": "cursor_load",
+   "t": 8.361
+  },
+  {
+   "name": "load_click",
+   "t": 9.063
+  },
+  {
+   "name": "loaded",
+   "t": 9.091
+  },
+  {
+   "name": "reloaded",
+   "t": 9.833
+  }
+ ],
+ "id": "pechlikjdcbachgkfmnnoddccacnmfam"
+}

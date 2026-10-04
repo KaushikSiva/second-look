@@ -1,0 +1,62 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:2400px;height:1260px;overflow:hidden;background:#07080d;font-family:Inter,sans-serif;color:#fff}
+.bg{position:absolute;inset:0;
+  background:
+   radial-gradient(900px 700px at 78% 30%, rgba(124,156,255,.28), transparent 60%),
+   radial-gradient(700px 600px at 95% 95%, rgba(61,220,151,.16), transparent 60%),
+   radial-gradient(800px 700px at 8% 100%, rgba(155,107,255,.18), transparent 60%),
+   #07080d}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(1200px 900px at 60% 40%,#000 30%,transparent 80%)}
+.left{position:absolute;left:150px;top:0;bottom:0;width:980px;display:flex;flex-direction:column;justify-content:center}
+.brand{display:flex;align-items:center;gap:22px;margin-bottom:54px}
+.brand img{width:76px;height:76px;border-radius:20px;box-shadow:0 0 50px rgba(124,156,255,.5)}
+.brand span{font-size:40px;font-weight:700;letter-spacing:-.5px}
+.pill{display:inline-flex;align-items:center;gap:14px;font-size:24px;font-weight:600;color:#a9b8ff;border:1px solid rgba(124,156,255,.35);background:rgba(124,156,255,.08);padding:12px 24px;border-radius:999px;margin-bottom:40px;width:max-content}
+.pill i{width:12px;height:12px;border-radius:50%;background:#3DDC97;box-shadow:0 0 14px #3DDC97}
+h1{font-size:132px;line-height:.98;font-weight:900;letter-spacing:-5px}
+h1 em{font-style:normal;background:linear-gradient(90deg,#7C9CFF,#B18CFF 55%,#3DDC97);-webkit-background-clip:text;color:transparent}
+p.sub{margin-top:44px;font-size:36px;line-height:1.45;color:#aeb4c8;max-width:880px}
+.verdicts{display:flex;gap:16px;margin-top:56px}
+.v{font-size:22px;font-weight:800;letter-spacing:2px;padding:14px 22px;border-radius:14px}
+.v.b{color:#3DDC97;background:rgba(61,220,151,.12);border:1px solid rgba(61,220,151,.4)}
+.v.w{color:#FFB547;background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.35)}
+.v.s{color:#FF6B6B;background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.35)}
+.v.a{color:#a9b8ff;background:rgba(124,156,255,.1);border:1px solid rgba(124,156,255,.35)}
+.stage{position:absolute;right:-40px;top:110px;width:1300px;height:1100px;perspective:2600px}
+.browser{position:absolute;left:0;top:70px;width:1060px;border-radius:22px;overflow:hidden;transform:rotateY(-14deg) rotateX(4deg);transform-origin:right center;box-shadow:0 60px 140px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08);opacity:.55;filter:saturate(.9)}
+.browser .bar{height:46px;background:#1b1d26;display:flex;align-items:center;gap:10px;padding:0 18px}
+.browser .bar i{width:13px;height:13px;border-radius:50%;background:#3a3d4a}
+.browser img{display:block;width:100%}
+.panel{position:absolute;left:640px;top:0;width:560px;border-radius:28px;overflow:hidden;box-shadow:0 70px 160px rgba(0,0,0,.75),0 0 0 1px rgba(124,156,255,.35),0 0 120px rgba(124,156,255,.25);transform:rotateY(-6deg)}
+.panel img{display:block;width:100%}
+.float{position:absolute;background:rgba(18,20,30,.82);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6);font-size:22px}
+.float b{display:block;font-size:34px;font-weight:800;margin-top:6px}
+.f1{left:230px;top:880px}
+.f1 b{color:#3DDC97}
+.f2{left:330px;top:120px}
+.f2 s{color:#FF6B6B;opacity:.9}
+.f2 b{color:#fff}
+.mic{position:absolute;left:1120px;top:880px;width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#7C9CFF,#9B6BFF);display:grid;place-items:center;box-shadow:0 0 0 18px rgba(124,156,255,.15),0 0 0 40px rgba(124,156,255,.07),0 20px 60px rgba(124,156,255,.6)}
+.foot{position:absolute;left:150px;bottom:64px;font-size:20px;letter-spacing:4px;color:#5d6378;font-weight:600}
+</style></head><body>
+<div class="bg"></div><div class="grid"></div>
+<div class="left">
+  <div class="brand"><img src="../../extension/icons/icon128.png"><span>Second Look</span></div>
+  <div class="pill"><i></i>Voice shopping agent · Chrome extension</div>
+  <h1>Before you buy,<br><em>take a second look.</em></h1>
+  <p class="sub">Ask out loud if it's worth it. It checks real reviews, price history and other stores while you talk, then gives you one honest verdict.</p>
+  <div class="verdicts"><span class="v b">BUY NOW</span><span class="v w">WAIT</span><span class="v s">SKIP</span><span class="v a">BUY ALTERNATIVE</span></div>
+</div>
+<div class="stage">
+  <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="../src/amazon.png"></div>
+  <div class="panel"><img src="../src/panel_buy.png"></div>
+  <div class="float f2">Shown rating <s>4.7★</s><b>Real rating 4.4★</b></div>
+  <div class="float f1">Confidence<b>100% · Good deal</b></div>
+  <div class="mic"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></div>
+</div>
+<div class="foot">GEMINI LIVE · EXA · KERNEL · NEON · AGENTMAIL · JEV</div>
+</body></html>

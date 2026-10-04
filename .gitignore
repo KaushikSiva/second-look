@@ -10,3 +10,10 @@ video/work/
 video/rec/frames/
 video/rec/full.mp4
 video/recordings/
+film/node_modules/
+film/rec/live/frames/
+film/rec/install/
+film/rec/install2/
+film/compose/out/
+film/rec/runner_*.png
+film/rec/live/mic.wav
