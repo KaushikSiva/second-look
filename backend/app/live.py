@@ -4,11 +4,16 @@ and results are handed back WHEN_IDLE so Gemini speaks them at a natural pause."
 import asyncio
 import base64
 import json
+import os
+import time
+import wave
 
 from google.genai import types
 
 from . import db, mail, research
-from .config import LIVE_MODEL, LIVE_VOICE, log
+from .config import LIVE_MODEL, LIVE_VOICE, env, log
+
+RECORD_DIR = env("RECORD_AUDIO_DIR")
 from .llm import client
 
 SYSTEM = """You are Second Look, a sharp, warm, frugal shopping friend living in the shopper's browser side panel.
@@ -63,6 +68,7 @@ class Bridge:
         self.session = None
         self.tasks: set[asyncio.Task] = set()
         self.send_lock = asyncio.Lock()
+        self.audio_log: list[tuple[float, bytes]] = []  # (wall time, 24 kHz PCM) when RECORD_AUDIO_DIR is set
 
     async def emit(self, msg: dict):
         async with self.send_lock:
@@ -124,6 +130,8 @@ class Bridge:
                     if sc.model_turn:
                         for part in sc.model_turn.parts or []:
                             if part.inline_data and part.inline_data.data:
+                                if RECORD_DIR:
+                                    self.audio_log.append((time.time(), part.inline_data.data))
                                 await self.emit({"type": "audio", "data": base64.b64encode(part.inline_data.data).decode()})
                     if sc.input_transcription and sc.input_transcription.text:
                         await self.emit({"type": "transcript", "role": "user", "text": sc.input_transcription.text,
@@ -189,6 +197,24 @@ class Bridge:
             finally:
                 pump.cancel()
                 self.session = None
+                self.save_audio()
+
+    def save_audio(self):
+        """Lay the agent's voice onto a wall-clock timeline (for muxing into screen recordings of the demo)."""
+        if not RECORD_DIR or not self.audio_log:
+            return
+        t0, rate, pcm, cursor = self.audio_log[0][0], 24000, bytearray(), 0.0
+        for t, chunk in self.audio_log:
+            start = max(t - t0, cursor)
+            pcm.extend(b"\0\0" * int((start - len(pcm) / 2 / rate) * rate))
+            pcm.extend(chunk)
+            cursor = len(pcm) / 2 / rate
+        os.makedirs(RECORD_DIR, exist_ok=True)
+        path = os.path.join(RECORD_DIR, f"agent_{t0:.3f}.wav")
+        with wave.open(path, "wb") as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(bytes(pcm))
+        log.info("saved agent audio %s", path)
+        self.audio_log = []
 
     async def set_product(self, p: dict | None):
         if not p or not p.get("title"):

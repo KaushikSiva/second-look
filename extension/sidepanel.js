@@ -1064,7 +1064,8 @@ function renderPrice(c) {
   const top = h('div', { class: 'price-row' },
     h('div', { class: 'price-now num' }, money(cur, null, { whole: false }),
       listP != null && cur != null && listP > cur ? h('small', null, money(listP, null, { whole: false })) : null),
-    c.fake_discount ? h('span', { class: 'fake-pill' }, icon('i-warn', 11), 'FAKE DISCOUNT') : null);
+    c.fake_discount ? h('span', { class: 'fake-pill' }, icon('i-warn', 11), 'FAKE DISCOUNT') : null,
+    c.demo_data ? h('span', { class: 'demo-pill', title: 'Price history includes seeded demo rows' }, 'demo data') : null);
 
   const chart = priceChart(c);
   const stats = h('div', { class: 'stats' },
@@ -1360,7 +1361,13 @@ async function init() {
     if (st.backendUrl) S.url = st.backendUrl;
     applyTheme(st.theme || 'system');
   } catch (_) { applyTheme('system'); }
-  try { S.windowId = (await chrome.windows.getCurrent()).id; } catch (_) { /* ignore */ }
+  try {
+    // Demo/recording mode: sidepanel.html?attach=amazon opened as a standalone window follows the window
+    // showing that site instead of its own.
+    const attach = new URLSearchParams(location.search).get('attach');
+    const [shop] = attach ? await chrome.tabs.query({ url: `*://*.${attach}.com/*` }) : [];
+    S.windowId = shop ? shop.windowId : (await chrome.windows.getCurrent()).id;
+  } catch (_) { /* ignore */ }
   renderProduct(false);
   renderStatus();
   setSession('idle');

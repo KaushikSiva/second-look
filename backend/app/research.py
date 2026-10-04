@@ -74,7 +74,9 @@ async def price(p: dict, key: str) -> dict:
     lp = p.get("list_price")
     # "Was $X" is fake when the product hasn't actually sold near X in the tracked window
     fake = bool(lp and cur and lp > cur * 1.05 and len(prices) >= 3 and high < lp * 0.93)
-    if cur and low and cur <= low * 1.02:
+    if len(hist) < 3:
+        note = "Just started tracking this one; every price Second Look sees is saved in Neon."
+    elif cur and low and cur <= low * 1.02:
         note = "At its lowest tracked price."
     elif cur and avg and cur > avg * 1.05:
         note = f"{round((cur / low - 1) * 100)}% above its 180-day low of ${low:.2f}."
@@ -84,7 +86,7 @@ async def price(p: dict, key: str) -> dict:
         note = f"\"Was ${lp:.2f}\" is a fake reference — it hasn't sold near that. " + note
     return {"id": "price", "kind": "price", "current": cur, "low": low, "avg": avg, "high": high, "list_price": lp,
             "fake_discount": fake, "history": [{"t": h["t"], "price": h["price"]} for h in hist], "note": note,
-            "points": len(hist)}
+            "points": len(hist), "demo_data": any(h["source"] == "seed" for h in hist)}
 
 
 # ---------------------------------------------------------------- alternatives + lifetime cost
