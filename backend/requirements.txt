@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+google-genai>=2.28
+httpx
+exa-py
+psycopg[binary]
+python-dotenv
+agentmail
+kernel

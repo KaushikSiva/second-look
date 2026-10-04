@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Look · Microphone</title>
+  <link rel="icon" href="icons/icon48.png">
+  <style>
+    :root {
+      --bg: #0A0A0D; --card: #111116; --border: rgba(255,255,255,.08); --text: #F4F4F6; --text-2: #A1A1AA;
+      --accent: #8B7CFF; --green: #34D399; --red: #F87171;
+      --grad: linear-gradient(135deg, #8B7CFF 0%, #5B8CFF 55%, #4FD1C5 100%);
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg: #F7F7F9; --card: #FFFFFF; --border: rgba(15,15,30,.08); --text: #0E0E12; --text-2: #55555F; --accent: #6A5AF9; --green: #059669; --red: #DC2626; color-scheme: light; }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 15px/1.5 Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+      display: grid; place-items: center; padding: 24px;
+      background-image: radial-gradient(600px 300px at 50% -10%, rgba(139,124,255,.18), transparent 70%);
+    }
+    .card {
+      width: 100%; max-width: 420px; text-align: center; padding: 40px 32px 32px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 24px;
+      box-shadow: 0 30px 80px -30px rgba(0,0,0,.5);
+    }
+    .logo { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 18px; background: var(--grad); display: grid; place-items: center; box-shadow: 0 10px 30px -8px rgba(139,124,255,.6); }
+    h1 { font-size: 22px; letter-spacing: -.02em; margin: 0 0 8px; font-weight: 650; }
+    p { color: var(--text-2); margin: 0 0 24px; }
+    button {
+      appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 600;
+      padding: 12px 22px; border-radius: 999px; color: #fff; background: var(--grad);
+      box-shadow: 0 8px 24px -8px rgba(139,124,255,.7); transition: transform .15s ease, filter .15s ease;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: scale(.97); }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+    .state { display: none; }
+    body[data-state="ask"] .s-ask, body[data-state="ok"] .s-ok, body[data-state="err"] .s-err { display: block; }
+    .badge { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; }
+    .s-ok .badge { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); animation: pop .5s cubic-bezier(.2,1.4,.4,1); }
+    .s-err .badge { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+    .hint { font-size: 13px; margin-top: 16px; color: var(--text-2); }
+    kbd { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  </style>
+</head>
+<body data-state="ask">
+  <main class="card">
+    <div class="logo" aria-hidden="true">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="7.2" stroke="#fff" stroke-width="2.2"/>
+        <circle cx="13.4" cy="10.6" r="2.6" fill="#fff"/>
+      </svg>
+    </div>
+
+    <section class="state s-ask">
+      <h1>Let Second Look hear you</h1>
+      <p>Chrome can't show the microphone prompt inside a side panel, so we ask once here. Audio only streams while you're talking to Second Look.</p>
+      <button id="grant">Allow microphone</button>
+    </section>
+
+    <section class="state s-ok">
+      <div class="badge"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg></div>
+      <h1>You're all set</h1>
+      <p>Microphone access granted. Head back to your product tab and tap the mic in the Second Look panel.</p>
+      <button id="back">Back to shopping</button>
+    </section>
+
+    <section class="state s-err">
+      <div class="badge"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/></svg></div>
+      <h1>Microphone blocked</h1>
+      <p id="errMsg">Click the lock / tune icon in the address bar, set Microphone to <b>Allow</b>, then try again.</p>
+      <button id="retry">Try again</button>
+      <div class="hint">You can also type questions in the panel instead.</div>
+    </section>
+  </main>
+  <script src="permission.js"></script>
+</body>
+</html>
