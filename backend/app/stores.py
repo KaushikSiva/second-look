@@ -53,7 +53,11 @@ async def live_price(url: str) -> dict | None:
         r = await k.browsers.playwright.execute(b.session_id, code=f"const URL = {json.dumps(url)};\n" + LIVE_PRICE_JS,
                                                 timeout_sec=60)
         res = getattr(r, "result", None)
-        return res if isinstance(res, dict) else None
+        if not isinstance(res, dict) or "not found" in (res.get("title") or "").lower():
+            return None
+        if not res.get("price") or float(res["price"]) < 5:  # JSON-LD junk like price: 1
+            res["price"] = None
+        return res
     finally:
         try:
             await k.browsers.delete_by_id(b.session_id)
@@ -66,39 +70,54 @@ async def compare(p: dict, emit) -> dict:
     ident = p.get("model") or short_title(p)
     domains = list(STORES)
     found = await exa().search(f"{p.get('brand') or ''} {ident}".strip(), num_results=8, include_domains=domains, type="fast")
-    # Retail pages render prices client-side, so index snippets rarely carry them: live-crawl the listings.
+    # Retail pages render prices client-side, so index snippets rarely carry them. In parallel: Exa live-crawls the
+    # listings, and Kernel opens one listing per store in a real cloud browser to read the price as a shopper sees it.
     urls = [x.url for x in found.results][:6]
-    crawled = await exa().get_contents(urls, text={"max_characters": 3500}, livecrawl="always", livecrawl_timeout=8000) if urls else None
-    results = [{"url": x.url, "title": x.title, "text": x.text or ""} for x in (crawled.results if crawled else [])]
+    per_store: dict[str, str] = {}
+    for u in urls:
+        per_store.setdefault(u.split("/")[2].removeprefix("www."), u)
+
+    async def crawl():
+        if not urls:
+            return []
+        c = await exa().get_contents(urls, text={"max_characters": 3500}, livecrawl="always", livecrawl_timeout=8000)
+        return [{"url": x.url, "title": x.title, "text": x.text or ""} for x in c.results]
+
+    async def browse(url):
+        try:
+            return url, await asyncio.wait_for(live_price(url), 45)
+        except Exception as e:  # noqa: BLE001
+            log.warning("kernel %s: %r", url, e)
+            return url, None
+
+    use_kernel = has("KERNEL_API_KEY") and per_store
+    if use_kernel:
+        await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "running",
+                    "label": f"Opening {', '.join(STORES.get(d, d) for d in per_store)} in cloud browsers"})
+    results, live = await asyncio.gather(crawl(), asyncio.gather(*[browse(u) for u in per_store.values()]) if use_kernel else asyncio.sleep(0, []))
+    live = {u: r for u, r in live if r and r.get("price")}
+    if use_kernel:
+        await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "done" if live else "error",
+                    "label": f"Read {len(live)} live price{'s' if len(live) != 1 else ''} in Kernel" if live else "Live check blocked"})
     srcs = "\n\n".join(f"[{r['url']}] {r['title']}\n{r['text'][:3000]}" for r in results)
+    browsed = "\n".join(f"[{u}] LIVE BROWSER READ — page title: {r.get('title')!r}, price ${r['price']}, in_stock={r.get('in_stock')}"
+                        for u, r in live.items())
     out = await llm.extract(
         f"Shopper's product: {p.get('title')} (model {p.get('model') or 'unknown'}) at ${p.get('price')} on Amazon.\n\n"
-        f"Listings found:\n{srcs}\n\nReturn the current selling price of each listing that is the same product (ignore prices of related/sponsored items, accessories and multi-packs). "
-        f"Store name from the domain ({', '.join(STORES.values())}). Mark different models/bundles as same_product=false.",
+        f"Live browser reads (most trustworthy prices):\n{browsed or '(none)'}\n\nCrawled listings:\n{srcs}\n\n"
+        "Return the current selling price of each listing that is the same product (ignore prices of related/sponsored items, "
+        f"accessories and multi-packs). Prefer the live browser price when a URL has one. Store name from the domain "
+        f"({', '.join(STORES.values())}). Mark different models/bundles as same_product=false.",
         OFFERS_SCHEMA)
     offers, seen = [], set()
-    for o in out["offers"]:
+    for o in sorted(out["offers"], key=lambda o: (o["url"] not in live, o.get("price") or 1e9)):
         if o["same_product"] and o.get("price") and o["store"] not in seen:
             seen.add(o["store"])
-            offers.append({**o, "verified": False})
+            lv = live.get(o["url"])
+            if lv:
+                o.update(price=float(lv["price"]), in_stock=lv.get("in_stock") if lv.get("in_stock") is not None else o.get("in_stock"))
+            offers.append({**o, "verified": bool(lv)})
     offers.sort(key=lambda o: o["price"])
-
-    # Verify the cheapest candidate live in a Kernel cloud browser.
-    in_stock = [o for o in offers if o.get("in_stock") is not False]
-    if in_stock and has("KERNEL_API_KEY"):
-        top = in_stock[0]
-        await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "running",
-                    "label": f"Opening {top['store']} in a cloud browser"})
-        try:
-            live = await asyncio.wait_for(live_price(top["url"]), 70)
-            if live and live.get("price"):
-                top.update(price=float(live["price"]), verified=True, in_stock=live.get("in_stock"))
-            await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "done",
-                        "label": f"Verified {top['store']} live price"})
-        except Exception as e:  # noqa: BLE001
-            log.warning("kernel verify failed: %r", e)
-            await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "error", "label": "Live check failed"})
-        offers.sort(key=lambda o: o["price"])
 
     cur = p.get("price") or 0
     best = None
