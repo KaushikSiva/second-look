@@ -78,7 +78,7 @@ mark('panel_ready');
 await ask('Should I buy this?', 'ask');
 await panel.waitForSelector('article.card.verdict', { timeout: 120000 });
 mark('verdict');
-await panel.waitForTimeout(16000);            // let the agent speak the verdict
+await panel.waitForTimeout(20000);            // let the agent speak the verdict
 mark('verdict_spoken');
 await panel.evaluate(() => document.querySelector('article.card.verdict')?.scrollIntoView({ block: 'start' }));
 await panel.waitForTimeout(2500);

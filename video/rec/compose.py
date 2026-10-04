@@ -37,8 +37,11 @@ def main():
     full = os.path.join(HERE, "full.mp4")
     # frame timeline starts at `first` seconds after t0
     run("-f", "concat", "-safe", "0", "-i", "/tmp/sl_shop.txt", "-f", "concat", "-safe", "0", "-i", "/tmp/sl_panel.txt",
-        "-filter_complex", "[0:v]fps=30,scale=1280:800,setsar=1[a];[1:v]fps=30,scale=440:800,setsar=1[b];"
-                           "[a][b]hstack=2,pad=1728:800:4:0:color=0x0B0D12,format=yuv420p[v]",
+        "-filter_complex", # Sized for the film's 1536x864 device frame: the panel runs full height (it's the product),
+        # the Amazon page is cropped to the product column beside it.
+        "[0:v]fps=30,crop=982:800:0:0,scale=1060:864:flags=lanczos,setsar=1[a];"
+        "[1:v]fps=30,scale=476:864:flags=lanczos,setsar=1[b];"
+        "[a][b]hstack=2,format=yuv420p[v]",
         "-map", "[v]", "-c:v", "libx264", "-crf", "17", "-preset", "fast", "/tmp/sl_video.mp4")
 
     # agent voice: WAV starts at its file-name wall time; recording t0 wall = any event's wall - t
@@ -62,9 +65,12 @@ def main():
             "-c:a", "aac", "-b:a", "192k", os.path.join(REC, out))
 
     os.makedirs(REC, exist_ok=True)
-    cut("03_ask.mp4", t("panel_ready", -5.5), t("ask", 3.0))
-    cut("04_cards.mp4", t("ask", 3.0), t("verdict", 0.5))
-    cut("05_verdict.mp4", t("verdict", 0.5), t("verdict_spoken", 1.0))
+    # shot lengths must cover the narration over them (s03 ~9 s, s04 ~18 s, s05 ~7 s, s06 ~8.5 s)
+    cut("/tmp/sl_03.mp4", t("panel_ready", -8.0), t("ask", 1.0))
+    run("-i", "/tmp/sl_03.mp4", "-vf", "tpad=start_duration=3.8:start_mode=clone", "-af", "adelay=3800|3800",
+        "-c:v", "libx264", "-crf", "17", "-c:a", "aac", os.path.join(REC, "03_ask.mp4"))
+    cut("04_cards.mp4", t("ask", 1.0), max(t("verdict", 5.0), t("ask", 20.0)))
+    cut("05_verdict.mp4", max(t("verdict", 5.0), t("ask", 20.0)), t("verdict_spoken", 1.0))
     cut("06_watch.mp4", t("watch_typing", -0.5), t("end"))
     for f in sorted(glob.glob(os.path.join(REC, "0*.mp4"))):
         d = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f],

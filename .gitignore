@@ -7,3 +7,6 @@ __pycache__/
 .DS_Store
 video/out/
 video/work/
+video/rec/frames/
+video/rec/full.mp4
+video/recordings/
