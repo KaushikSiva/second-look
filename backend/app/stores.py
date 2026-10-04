@@ -65,68 +65,92 @@ async def live_price(url: str) -> dict | None:
             pass
 
 
-async def compare(p: dict, emit) -> dict:
-    from .research import exa, short_title
-    ident = p.get("model") or short_title(p)
-    domains = list(STORES)
-    found = await exa().search(f"{p.get('brand') or ''} {ident}".strip(), num_results=8, include_domains=domains, type="fast")
-    # Retail pages render prices client-side, so index snippets rarely carry them. In parallel: Exa live-crawls the
-    # listings, and Kernel opens one listing per store in a real cloud browser to read the price as a shopper sees it.
-    urls = [x.url for x in found.results][:6]
-    per_store: dict[str, str] = {}
-    for u in urls:
-        per_store.setdefault(u.split("/")[2].removeprefix("www."), u)
-
-    async def crawl():
-        if not urls:
-            return []
-        c = await exa().get_contents(urls, text={"max_characters": 3500}, livecrawl="always", livecrawl_timeout=8000)
-        return [{"url": x.url, "title": x.title, "text": x.text or ""} for x in c.results]
-
-    async def browse(url):
-        try:
-            return url, await asyncio.wait_for(live_price(url), 45)
-        except Exception as e:  # noqa: BLE001
-            log.warning("kernel %s: %r", url, e)
-            return url, None
-
-    use_kernel = has("KERNEL_API_KEY") and per_store
-    if use_kernel:
-        await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "running",
-                    "label": f"Opening {', '.join(STORES.get(d, d) for d in per_store)} in cloud browsers"})
-    results, live = await asyncio.gather(crawl(), asyncio.gather(*[browse(u) for u in per_store.values()]) if use_kernel else asyncio.sleep(0, []))
-    live = {u: r for u, r in live if r and r.get("price")}
-    if use_kernel:
-        await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "done" if live else "error",
-                    "label": f"Read {len(live)} live price{'s' if len(live) != 1 else ''} in Kernel" if live else "Live check blocked"})
-    srcs = "\n\n".join(f"[{r['url']}] {r['title']}\n{r['text'][:3000]}" for r in results)
-    browsed = "\n".join(f"[{u}] LIVE BROWSER READ — page title: {r.get('title')!r}, price ${r['price']}, in_stock={r.get('in_stock')}"
-                        for u, r in live.items())
-    out = await llm.extract(
-        f"Shopper's product: {p.get('title')} (model {p.get('model') or 'unknown'}) at ${p.get('price')} on Amazon.\n\n"
-        f"Live browser reads (most trustworthy prices):\n{browsed or '(none)'}\n\nCrawled listings:\n{srcs}\n\n"
-        "Return the current selling price of each listing that is the same product (ignore prices of related/sponsored items, "
-        f"accessories and multi-packs). Prefer the live browser price when a URL has one. Store name from the domain "
-        f"({', '.join(STORES.values())}). Mark different models/bundles as same_product=false.",
-        OFFERS_SCHEMA)
-    offers, seen = [], set()
-    for o in sorted(out["offers"], key=lambda o: (o["url"] not in live, o.get("price") or 1e9)):
-        if o["same_product"] and o.get("price") and o["store"] not in seen:
-            seen.add(o["store"])
-            lv = live.get(o["url"])
-            if lv:
-                o.update(price=float(lv["price"]), in_stock=lv.get("in_stock") if lv.get("in_stock") is not None else o.get("in_stock"))
-            offers.append({**o, "verified": bool(lv)})
-    offers.sort(key=lambda o: o["price"])
-
+def _card(p: dict, offers: list[dict]) -> dict:
     cur = p.get("price") or 0
-    best = None
+    offers = sorted(offers, key=lambda o: o["price"])
     for o in offers:
         if o.get("in_stock") is False:
             o["note"] = "out of stock"
     buyable = [o for o in offers if o.get("in_stock") is not False]
+    best = None
     if buyable and cur and buyable[0]["price"] < cur - 0.5:
         best = {"store": buyable[0]["store"], "price": buyable[0]["price"], "saving": round(cur - buyable[0]["price"], 2),
                 "url": buyable[0]["url"], "verified": buyable[0].get("verified", False)}
     rows = [{"store": "Amazon", "price": cur, "url": p.get("url"), "verified": True, "note": "you're here"}] + offers
     return {"id": "stores", "kind": "stores", "offers": rows, "best": best}
+
+
+def _same_model(p: dict, title: str) -> bool:
+    ident = (p.get("model") or "").lower().replace("-", " ")
+    words = [w for w in ident.split() if len(w) > 1] or [w for w in (p.get("title") or "").lower().split()[:3]]
+    t = (title or "").lower().replace("-", " ")
+    return bool(words) and all(w in t for w in words) and "pack" not in t
+
+
+async def compare(p: dict, emit, on_update=None) -> dict:
+    """Fast path (Exa live crawl + Flash, ~5 s) returns the card the verdict uses. If Kernel is configured, a
+    background pass then opens each store in a cloud browser and re-emits the card with live-verified prices,
+    so a slow store page never holds up the conversation."""
+    from .research import exa, short_title
+    ident = p.get("model") or short_title(p)
+    found = await exa().search(f"{p.get('brand') or ''} {ident}".strip(), num_results=8, include_domains=list(STORES), type="fast")
+    urls = [x.url for x in found.results][:6]
+    per_store: dict[str, str] = {}
+    for u in urls:
+        per_store.setdefault(u.split("/")[2].removeprefix("www."), u)
+
+    results = []
+    if urls:
+        c = await exa().get_contents(urls, text={"max_characters": 3500}, livecrawl="always", livecrawl_timeout=6000)
+        results = [{"url": x.url, "title": x.title, "text": x.text or ""} for x in c.results]
+    srcs = "\n\n".join(f"[{r['url']}] {r['title']}\n{r['text'][:3000]}" for r in results)
+    out = await llm.extract(
+        f"Shopper's product: {p.get('title')} (model {p.get('model') or 'unknown'}) at ${p.get('price')} on Amazon.\n\n"
+        f"Crawled listings:\n{srcs}\n\nReturn the current selling price of each listing that is the same product (ignore "
+        f"prices of related/sponsored items, accessories and multi-packs). Store name from the domain "
+        f"({', '.join(STORES.values())}). Mark different models/bundles as same_product=false.",
+        OFFERS_SCHEMA) if results else {"offers": []}
+    offers, seen = [], set()
+    for o in sorted(out["offers"], key=lambda o: o.get("price") or 1e9):
+        if o["same_product"] and o.get("price") and o["store"] not in seen:
+            seen.add(o["store"])
+            offers.append({**o, "verified": False})
+    card = _card(p, offers)
+
+    if has("KERNEL_API_KEY") and per_store:
+        t = asyncio.create_task(_verify_live(p, offers, per_store, emit))
+        _background.add(t)
+        t.add_done_callback(_background.discard)
+    return card
+
+
+_background: set[asyncio.Task] = set()
+
+
+async def _verify_live(p: dict, offers: list[dict], per_store: dict[str, str], emit):
+    names = ", ".join(STORES.get(d, d) for d in per_store)
+    await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "running", "label": f"Opening {names} in cloud browsers"})
+
+    async def browse(url):
+        try:
+            return url, await asyncio.wait_for(live_price(url), 25)
+        except Exception as e:  # noqa: BLE001
+            log.warning("kernel %s: %r", url, e)
+            return url, None
+
+    reads = {u: r for u, r in await asyncio.gather(*[browse(u) for u in per_store.values()]) if r and r.get("price")}
+    by_store = {o["store"]: o for o in offers}
+    for u, r in reads.items():
+        store = STORES.get(u.split("/")[2].removeprefix("www."))
+        o = by_store.get(store)
+        if o and (o["url"] == u or _same_model(p, r.get("title"))):
+            o.update(price=float(r["price"]), verified=True, url=u)
+            if r.get("in_stock") is not None:
+                o["in_stock"] = r["in_stock"]
+        elif not o and store and _same_model(p, r.get("title")):
+            by_store[store] = {"store": store, "url": u, "price": float(r["price"]), "same_product": True,
+                               "in_stock": r.get("in_stock"), "verified": True, "note": r.get("title", "")[:60]}
+    await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "done" if reads else "error",
+                "label": f"Verified {len(reads)} live price{'s' if len(reads) != 1 else ''} in Kernel" if reads else "Live check blocked"})
+    if reads:
+        await emit({"type": "card", "card": _card(p, list(by_store.values()))})

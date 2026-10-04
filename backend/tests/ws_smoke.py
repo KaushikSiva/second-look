@@ -8,7 +8,7 @@ import websockets
 
 PRODUCT = {"url": "https://www.amazon.com/dp/B07VVK39F7", "site": "amazon", "asin": "B07VVK39F7",
            "title": "LEVOIT Air Purifier for Home Bedroom, HEPA Filter Cleaner, Core 300", "brand": "LEVOIT",
-           "price": 99.99, "list_price": 149.99, "rating": 4.7, "review_count": 120000, "model": "Core 300",
+           "price": 80.99, "list_price": 99.99, "rating": 4.7, "review_count": 108942, "model": "Core 300",
            "review_snippets": ["Works great, my allergies are better", "Received this free in exchange for an honest review. Love it!",
                                "Filter replacement is pricey", "Quiet on sleep mode"]}
 

@@ -166,7 +166,7 @@ tl.to('#s2', {{opacity:0, duration:0.4}}, D - 0.45);
 
 
 # ------------------------------------------------------------------ s08 savings callout + end card
-def endcard_html(dur: float, amount: int = 212, end_at: float = 4.4) -> str:
+def endcard_html(dur: float, amount: int = 3, end_at: float = 4.4) -> str:
     css = BASE_CSS + """
 .stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .amt{font-size:240px;font-weight:700;letter-spacing:-0.05em;color:var(--buy);line-height:1}
@@ -179,9 +179,9 @@ def endcard_html(dur: float, amount: int = 212, end_at: float = 4.4) -> str:
 """
     body = f"""<div class="bgx"></div>
 <div class="stage" id="s1">
-  <div class="amt">${odo("ea", str(amount))}</div>
-  <div class="saved">saved</div>
-  <div class="ctx">by waiting for real price drops</div>
+  <div class="amt">{odo("ea", str(amount))}</div>
+  <div class="saved">stores checked live</div>
+  <div class="ctx">while reviews, price history and alternatives run in parallel</div>
 </div>
 <div class="stage" id="s2" style="opacity:0">
   {_mark('e', 208, 144)}

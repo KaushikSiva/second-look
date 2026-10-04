@@ -1,0 +1,82 @@
+[
+  {
+    "name": "panel_ready",
+    "t": 9.016,
+    "wall": 1791148933.652
+  },
+  {
+    "name": "ask_typing",
+    "t": 9.075,
+    "wall": 1791148933.711
+  },
+  {
+    "name": "ask",
+    "t": 10.424,
+    "wall": 1791148935.06
+  },
+  {
+    "name": "card_price",
+    "t": 13.771,
+    "wall": 1791148938.407
+  },
+  {
+    "name": "card_alternatives",
+    "t": 16.839,
+    "wall": 1791148941.475
+  },
+  {
+    "name": "card_cost",
+    "t": 18.443,
+    "wall": 1791148943.079
+  },
+  {
+    "name": "card_reviews",
+    "t": 20.754,
+    "wall": 1791148945.39
+  },
+  {
+    "name": "card_stores",
+    "t": 59.219,
+    "wall": 1791148983.855
+  },
+  {
+    "name": "verdict",
+    "t": 59.909,
+    "wall": 1791148984.545
+  },
+  {
+    "name": "card_verdict",
+    "t": 61.335,
+    "wall": 1791148985.971
+  },
+  {
+    "name": "verdict_spoken",
+    "t": 75.911,
+    "wall": 1791149000.547
+  },
+  {
+    "name": "watch_typing",
+    "t": 78.686,
+    "wall": 1791149003.322
+  },
+  {
+    "name": "watch",
+    "t": 81.799,
+    "wall": 1791149006.435
+  },
+  {
+    "name": "watch_card",
+    "t": 82.988,
+    "wall": 1791149007.624
+  },
+  {
+    "name": "card_watch-asin:B07VVK39F7",
+    "t": 83.368,
+    "wall": 1791149008.004
+  },
+  {
+    "name": "end",
+    "t": 91.988,
+    "wall": 1791149016.624
+  }
+]

@@ -101,7 +101,7 @@ SHOTS = [
                   "every tool runs without interrupting the conversation.",
      "direction": "matter-of-fact engineer, precise"},
     {"id": "s08", "kind": "graphic", "engine": "hyperframes", "duration_s": 14,
-     "visual": "$212 saved callout -> end card: Second Look, 'Before you buy, take a second look.'",
+     "visual": "'3 stores checked live' callout -> end card: Second Look, 'Before you buy, take a second look.'",
      "narration": "Shopping should not be a contest you are set up to lose. Before you buy, take a second look.",
      "direction": "sincere, landing the closing line"},
 ]

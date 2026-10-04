@@ -22,11 +22,13 @@ async def extract(prompt: str, schema: dict, temperature: float = 0.2) -> dict:
     models = [TEXT_MODEL] + [m for m in FALLBACKS if m != TEXT_MODEL]
     for attempt in range(5):
         try:
-            return await _extract(models[min(attempt, len(models) - 1)], prompt, schema, temperature)
+            # a slow Flash call is as bad as a failed one in a live conversation: cap it and fall through
+            return await asyncio.wait_for(_extract(models[min(attempt, len(models) - 1)], prompt, schema, temperature), 12)
         except Exception as e:  # noqa: BLE001
-            if attempt == 4 or not any(x in str(e) for x in ("503", "UNAVAILABLE", "disconnected", "429", "500")):
+            if attempt == 4 or not (isinstance(e, asyncio.TimeoutError) or
+                                    any(x in str(e) for x in ("503", "UNAVAILABLE", "disconnected", "429", "500"))):
                 raise
-            await asyncio.sleep(0.3 * (attempt + 1))
+            await asyncio.sleep(0.2)
 
 
 # Flash 3.8 sometimes returns 503 "high demand"; fall through to older Flash models rather than fail a card.
