@@ -13,13 +13,16 @@ async def main(asin: str, current: float, low: float | None):
     await db.init()
     await db.q("delete from price_history where product_key=%s and source='seed'", key)
     rnd = random.Random(asin)
+    rows = []
     for d in range(180, 0, -2):
         base = low + (current - low) * 0.55
         if d in range(96, 90, -1) or d in range(10, 6, -1):   # past sale dips (Prime Day / last month)
             base = low
         p = round(base * rnd.uniform(0.98, 1.03), 2)
-        await db.q("insert into price_history (product_key, price, source, observed_at) values (%s,%s,'seed', now() - make_interval(days => %s))",
-                   key, p, d)
+        rows.append((key, p, d))
+    async with db.conn() as c:
+        async with c.cursor() as cur:
+            await cur.executemany("insert into price_history (product_key, price, source, observed_at) values (%s,%s,'seed', now() - make_interval(days => %s))", rows)
     print("seeded", key, "low", low)
 
 if __name__ == "__main__":

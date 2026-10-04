@@ -3,7 +3,7 @@ uvicorn[standard]
 google-genai>=2.28
 httpx
 exa-py
-psycopg[binary]
+psycopg[binary,pool]
 python-dotenv
 agentmail
 kernel

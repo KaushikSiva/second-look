@@ -1,4 +1,5 @@
 """Small structured-output helper on Gemini Flash (used by the background research, not the live voice)."""
+import asyncio
 import json
 
 from google import genai
@@ -17,6 +18,17 @@ def client() -> genai.Client:
 
 
 async def extract(prompt: str, schema: dict, temperature: float = 0.2) -> dict:
+    """Retries 503 'high demand' / transient errors with backoff."""
+    for attempt in range(4):
+        try:
+            return await _extract(prompt, schema, temperature)
+        except Exception as e:  # noqa: BLE001
+            if attempt == 3 or not any(x in str(e) for x in ("503", "UNAVAILABLE", "disconnected", "429", "500")):
+                raise
+            await asyncio.sleep(0.8 * (attempt + 1))
+
+
+async def _extract(prompt: str, schema: dict, temperature: float) -> dict:
     r = await client().aio.models.generate_content(
         model=TEXT_MODEL, contents=prompt,
         config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,

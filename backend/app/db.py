@@ -2,8 +2,8 @@
 import hashlib
 from contextlib import asynccontextmanager
 
-import psycopg
 from psycopg.rows import dict_row
+from psycopg_pool import AsyncConnectionPool
 
 from .config import env, log
 
@@ -37,13 +37,18 @@ def product_key(p: dict) -> str:
     return "url:" + hashlib.sha1((p.get("url") or p.get("title") or "").split("?")[0].encode()).hexdigest()[:16]
 
 
+_pool: AsyncConnectionPool | None = None
+
+
 @asynccontextmanager
 async def conn():
-    c = await psycopg.AsyncConnection.connect(env("DATABASE_URL"), row_factory=dict_row, autocommit=True)
-    try:
+    global _pool
+    if _pool is None:
+        _pool = AsyncConnectionPool(env("DATABASE_URL"), min_size=1, max_size=8, open=False, check=AsyncConnectionPool.check_connection,
+                                    kwargs={"row_factory": dict_row, "autocommit": True})
+        await _pool.open(wait=True, timeout=30)
+    async with _pool.connection() as c:
         yield c
-    finally:
-        await c.close()
 
 
 async def q(sql: str, *args) -> list[dict]:
@@ -73,7 +78,7 @@ async def record_product(p: dict) -> str:
 
 
 async def history(key: str, days: int = 180) -> list[dict]:
-    return await q("""select price::float as price, extract(epoch from observed_at)*1000 as t, source from price_history
+    return await q("""select price::float as price, (extract(epoch from observed_at)*1000)::float8 as t, source from price_history
                       where product_key=%s and store='amazon' and observed_at > now() - make_interval(days => %s)
                       order by observed_at""", key, days)
 

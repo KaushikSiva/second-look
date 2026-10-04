@@ -28,13 +28,15 @@ async def main(q: str):
             if m["type"] == "audio":
                 audio += 1
                 continue
+            if m["type"] == "transcript" and m["role"] == "agent" and not m["final"]:
+                print(m["text"], end="", flush=True)
+                continue
             if m["type"] == "card":
                 print(f"{time.time()-t0:5.1f}s CARD", m["card"]["kind"], json.dumps(m["card"])[:220])
             else:
                 print(f"{time.time()-t0:5.1f}s", json.dumps(m)[:200])
             if m["type"] == "card" and m["card"]["kind"] == "verdict":
-                await asyncio.sleep(12)
-                break
+                t0 = time.time() - 75  # keep listening ~15s for the spoken summary
         print("audio chunks:", audio)
 
 asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "Should I buy this?"))

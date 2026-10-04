@@ -164,9 +164,17 @@ async def research_product(p: dict, emit: Emit, focus: str = "all") -> dict:
         await emit({"type": "savings", "total_cents": await db.add_saving("cheaper_store", savings,
                                                                            f"{st['best']['store']} cheaper for {short_title(p)}")})
 
+    derived = {
+        "price_vs_low_pct": pr and pr["low"] and pr["current"] and round((pr["current"] / pr["low"] - 1) * 100),
+        "price_vs_avg_pct": pr and pr["avg"] and pr["current"] and round((pr["current"] / pr["avg"] - 1) * 100),
+        "fake_discount": pr and pr["fake_discount"],
+        "real_rating": rv and rv["real_rating"],
+        "cheaper_elsewhere": st and st.get("best"),
+    }
     signals = {
+        "derived": derived,
         "product": {"title": p.get("title"), "price": p.get("price")},
-        "reviews": rv and {k: rv[k] for k in ("shown_rating", "real_rating", "incentivized_pct", "top_complaint", "cons")},
+        "reviews": rv and {k: rv[k] for k in ("shown_rating", "real_rating", "incentivized_pct", "top_complaint")},
         "price": pr and {k: pr[k] for k in ("current", "low", "avg", "high", "list_price", "fake_discount", "note")},
         "other_stores": st and {"best": st.get("best"), "offers": [{k: o.get(k) for k in ("store", "price")} for o in st["offers"]]},
         "alternatives": alts and [{k: a.get(k) for k in ("title", "price", "real_rating")} for a in alts["items"]],
