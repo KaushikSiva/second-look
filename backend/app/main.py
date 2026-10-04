@@ -28,6 +28,7 @@ async def check_watchlist():
     """Re-check watched products' prices (Kernel live page read when available) and email on a drop."""
     from .stores import live_price
     while True:
+        await asyncio.sleep(60 * 60 * 3)
         try:
             for w in await db.q("select * from watchlist where triggered_at is null"):
                 live = await live_price(w["url"]) if has("KERNEL_API_KEY") else None
@@ -35,7 +36,6 @@ async def check_watchlist():
                     await price_drop(w, float(live["price"]), source="kernel")
         except Exception as e:  # noqa: BLE001
             log.warning("watchlist: %r", e)
-        await asyncio.sleep(60 * 60 * 3)
 
 
 async def price_drop(w: dict, new_price: float, source: str = "observed"):

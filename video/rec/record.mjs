@@ -30,19 +30,21 @@ await panel.setViewportSize({ width: 440, height: 800 });
 await panel.emulateMedia({ colorScheme: 'dark' });
 await panel.waitForLoadState('domcontentloaded');
 
+// Smooth capture: CDP screencast pushes a frame whenever the page repaints (up to ~30 fps), each with its own timestamp.
 let shooting = true, n = 0;
-(async () => {
-  while (shooting) {
-    const t = (Date.now() - t0) / 1000;
-    try {
-      const [a, b] = await Promise.all([shop.screenshot({ type: 'jpeg', quality: 85 }), panel.screenshot({ type: 'jpeg', quality: 90 })]);
-      const id = String(n++).padStart(5, '0');
-      fs.writeFileSync(`${OUT}/${id}_${t.toFixed(3)}_shop.jpg`, a);
-      fs.writeFileSync(`${OUT}/${id}_${t.toFixed(3)}_panel.jpg`, b);
-    } catch (e) { /* page busy */ }
-    await new Promise(r => setTimeout(r, 90));
-  }
-})();
+async function screencast(page, kind, w, h) {
+  const cdp = await ctx.newCDPSession(page);
+  cdp.on('Page.screencastFrame', async ({ data, sessionId }) => {
+    if (shooting) {
+      const t = (Date.now() - t0) / 1000;
+      fs.writeFileSync(`${OUT}/${String(n++).padStart(6, '0')}_${t.toFixed(3)}_${kind}.jpg`, Buffer.from(data, 'base64'));
+    }
+    cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
+  });
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 88, maxWidth: w, maxHeight: h, everyNthFrame: 1 });
+}
+await screencast(shop, 'shop', 1280, 800);
+await screencast(panel, 'panel', 440, 800);
 
 // Follow the story: smoothly scroll each newly arrived card into view (what a viewer would look at).
 const seen = new Set();

@@ -12,15 +12,16 @@ REC = os.path.join(HERE, "..", "recordings")
 FR = os.path.join(HERE, "frames")
 
 
-def concat_list(kind: str, path: str):
-    files = sorted(glob.glob(f"{FR}/*_{kind}.jpg"))
+def concat_list(kind: str, path: str, start: float):
+    files = sorted(glob.glob(f"{FR}/*_{kind}.jpg"), key=lambda f: float(os.path.basename(f).split("_")[1]))
     ts = [float(os.path.basename(f).split("_")[1]) for f in files]
+    # pad the head so both streams start at the same clock time
+    files, ts = [files[0]] + files, [start] + ts
     with open(path, "w") as fh:
         for i, f in enumerate(files):
             dur = (ts[i + 1] - ts[i]) if i + 1 < len(files) else 0.1
             fh.write(f"file '{f}'\nduration {dur:.3f}\n")
         fh.write(f"file '{files[-1]}'\n")
-    return ts[0]
 
 
 def run(*a):
@@ -29,8 +30,10 @@ def run(*a):
 
 def main():
     ev = {e["name"]: e for e in json.load(open(os.path.join(HERE, "events.json")))}
-    first = concat_list("shop", "/tmp/sl_shop.txt")
-    concat_list("panel", "/tmp/sl_panel.txt")
+    starts = [float(os.path.basename(f).split("_")[1]) for f in glob.glob(f"{FR}/*.jpg")]
+    first = min(starts)
+    concat_list("shop", "/tmp/sl_shop.txt", first)
+    concat_list("panel", "/tmp/sl_panel.txt", first)
     full = os.path.join(HERE, "full.mp4")
     # frame timeline starts at `first` seconds after t0
     run("-f", "concat", "-safe", "0", "-i", "/tmp/sl_shop.txt", "-f", "concat", "-safe", "0", "-i", "/tmp/sl_panel.txt",
@@ -59,13 +62,8 @@ def main():
             "-c:a", "aac", "-b:a", "192k", os.path.join(REC, out))
 
     os.makedirs(REC, exist_ok=True)
-    cut("03_ask.mp4", t("panel_ready", -2.5), t("ask", 2.5))
-    # cards: first arrivals, then jump past the wait for live store checks to the stores card
-    cut("/tmp/sl_c1.mp4", t("ask", 2.5), t("card_reviews", 3.0))
-    cut("/tmp/sl_c2.mp4", t("card_stores", -0.5), t("verdict", 0.5))
-    with open("/tmp/sl_cards.txt", "w") as fh:
-        fh.write("file '/tmp/sl_c1.mp4'\nfile '/tmp/sl_c2.mp4'\n")
-    run("-f", "concat", "-safe", "0", "-i", "/tmp/sl_cards.txt", "-c", "copy", os.path.join(REC, "04_cards.mp4"))
+    cut("03_ask.mp4", t("panel_ready", -5.5), t("ask", 3.0))
+    cut("04_cards.mp4", t("ask", 3.0), t("verdict", 0.5))
     cut("05_verdict.mp4", t("verdict", 0.5), t("verdict_spoken", 1.0))
     cut("06_watch.mp4", t("watch_typing", -0.5), t("end"))
     for f in sorted(glob.glob(os.path.join(REC, "0*.mp4"))):

@@ -82,6 +82,16 @@ class Bridge:
     # ---------------------------------------------------------------- tools
     async def run_tool(self, fc: types.FunctionCall):
         args = fc.args or {}
+        if fc.name == "research_product" and self.session and self.product:
+            # Interim response so Gemini speaks immediately instead of waiting silently for the research.
+            try:
+                await self.session.send_tool_response(function_responses=[types.FunctionResponse(
+                    id=fc.id, name=fc.name, will_continue=True, scheduling=types.FunctionResponseScheduling.INTERRUPT,
+                    response={"status": "started", "doing": "reading real reviews, price history, checking other stores live, "
+                              "finding alternatives — results stream into the panel over the next ~15 seconds",
+                              "say_now": "Acknowledge in one short sentence that you're on it. No numbers yet."})])
+            except Exception as e:  # noqa: BLE001
+                log.warning("interim response failed: %r", e)
         try:
             if not self.product and fc.name in ("research_product", "watch_price"):
                 result = {"error": "No product detected on the current tab. Ask the shopper to open a product page."}
