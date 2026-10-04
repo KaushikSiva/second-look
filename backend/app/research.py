@@ -27,7 +27,7 @@ def short_title(p: dict) -> str:
 
 
 async def search(query: str, n: int = 6, chars: int = 1500, **kw) -> list[dict]:
-    r = await exa().search(query, num_results=n, contents={"text": {"max_characters": chars}}, **kw)
+    r = await exa().search(query, num_results=n, contents={"text": {"max_characters": chars}}, type=kw.pop("type", "fast"), **kw)
     return [{"title": x.title, "url": x.url, "text": x.text or ""} for x in r.results]
 
 

@@ -19,18 +19,23 @@ def client() -> genai.Client:
 
 async def extract(prompt: str, schema: dict, temperature: float = 0.2) -> dict:
     """Retries 503 'high demand' / transient errors with backoff."""
-    for attempt in range(4):
+    models = [TEXT_MODEL] + [m for m in FALLBACKS if m != TEXT_MODEL]
+    for attempt in range(5):
         try:
-            return await _extract(prompt, schema, temperature)
+            return await _extract(models[min(attempt, len(models) - 1)], prompt, schema, temperature)
         except Exception as e:  # noqa: BLE001
-            if attempt == 3 or not any(x in str(e) for x in ("503", "UNAVAILABLE", "disconnected", "429", "500")):
+            if attempt == 4 or not any(x in str(e) for x in ("503", "UNAVAILABLE", "disconnected", "429", "500")):
                 raise
-            await asyncio.sleep(0.8 * (attempt + 1))
+            await asyncio.sleep(0.3 * (attempt + 1))
 
 
-async def _extract(prompt: str, schema: dict, temperature: float) -> dict:
+# Flash 3.8 sometimes returns 503 "high demand"; fall through to older Flash models rather than fail a card.
+FALLBACKS = ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+
+
+async def _extract(model: str, prompt: str, schema: dict, temperature: float) -> dict:
     r = await client().aio.models.generate_content(
-        model=TEXT_MODEL, contents=prompt,
+        model=model, contents=prompt,
         config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
                                            temperature=temperature,
                                            thinking_config=types.ThinkingConfig(thinking_budget=0)))

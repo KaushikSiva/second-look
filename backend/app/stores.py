@@ -13,7 +13,8 @@ OFFERS_SCHEMA = {
     "properties": {"offers": {"type": "array", "items": {"type": "object", "properties": {
         "store": {"type": "string"}, "url": {"type": "string"}, "price": {"type": "number"},
         "same_product": {"type": "boolean", "description": "Exactly the same model/variant as the shopper's product"},
-        "note": {"type": "string"}}, "required": ["store", "url", "price", "same_product"]}}},
+        "in_stock": {"type": "boolean", "description": "false if the page says out of stock / unavailable / sold out"},
+        "note": {"type": "string"}}, "required": ["store", "url", "price", "same_product", "in_stock"]}}},
     "required": ["offers"],
 }
 
@@ -61,14 +62,18 @@ async def live_price(url: str) -> dict | None:
 
 
 async def compare(p: dict, emit) -> dict:
-    from .research import search, short_title
+    from .research import exa, short_title
     ident = p.get("model") or short_title(p)
     domains = list(STORES)
-    results = await search(f"{p.get('brand') or ''} {ident}".strip(), n=8, chars=1200, include_domains=domains)
-    srcs = "\n\n".join(f"[{r['url']}] {r['title']}\n{r['text'][:1100]}" for r in results)
+    found = await exa().search(f"{p.get('brand') or ''} {ident}".strip(), num_results=8, include_domains=domains, type="fast")
+    # Retail pages render prices client-side, so index snippets rarely carry them: live-crawl the listings.
+    urls = [x.url for x in found.results][:6]
+    crawled = await exa().get_contents(urls, text={"max_characters": 3500}, livecrawl="always", livecrawl_timeout=8000) if urls else None
+    results = [{"url": x.url, "title": x.title, "text": x.text or ""} for x in (crawled.results if crawled else [])]
+    srcs = "\n\n".join(f"[{r['url']}] {r['title']}\n{r['text'][:3000]}" for r in results)
     out = await llm.extract(
         f"Shopper's product: {p.get('title')} (model {p.get('model') or 'unknown'}) at ${p.get('price')} on Amazon.\n\n"
-        f"Listings found:\n{srcs}\n\nReturn the price of each listing that is the same product. "
+        f"Listings found:\n{srcs}\n\nReturn the current selling price of each listing that is the same product (ignore prices of related/sponsored items, accessories and multi-packs). "
         f"Store name from the domain ({', '.join(STORES.values())}). Mark different models/bundles as same_product=false.",
         OFFERS_SCHEMA)
     offers, seen = [], set()
@@ -79,8 +84,9 @@ async def compare(p: dict, emit) -> dict:
     offers.sort(key=lambda o: o["price"])
 
     # Verify the cheapest candidate live in a Kernel cloud browser.
-    if offers and has("KERNEL_API_KEY"):
-        top = offers[0]
+    in_stock = [o for o in offers if o.get("in_stock") is not False]
+    if in_stock and has("KERNEL_API_KEY"):
+        top = in_stock[0]
         await emit({"type": "tool", "id": "kernel", "name": "kernel", "state": "running",
                     "label": f"Opening {top['store']} in a cloud browser"})
         try:
@@ -96,8 +102,12 @@ async def compare(p: dict, emit) -> dict:
 
     cur = p.get("price") or 0
     best = None
-    if offers and cur and offers[0]["price"] < cur - 0.5:
-        best = {"store": offers[0]["store"], "price": offers[0]["price"], "saving": round(cur - offers[0]["price"], 2),
-                "url": offers[0]["url"]}
+    for o in offers:
+        if o.get("in_stock") is False:
+            o["note"] = "out of stock"
+    buyable = [o for o in offers if o.get("in_stock") is not False]
+    if buyable and cur and buyable[0]["price"] < cur - 0.5:
+        best = {"store": buyable[0]["store"], "price": buyable[0]["price"], "saving": round(cur - buyable[0]["price"], 2),
+                "url": buyable[0]["url"], "verified": buyable[0].get("verified", False)}
     rows = [{"store": "Amazon", "price": cur, "url": p.get("url"), "verified": True, "note": "you're here"}] + offers
     return {"id": "stores", "kind": "stores", "offers": rows, "best": best}
